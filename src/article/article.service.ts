@@ -10,6 +10,7 @@ import { Category } from '../category/entities/category';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { ArticleSummaryDto } from './dto/article-summary.dto';
 import { ArticleMapper } from './mappers/article.mapper';
+import { UpdateArticleDto } from './dto/update-article.dto';
 
 @Injectable()
 export class ArticleService {
@@ -54,6 +55,93 @@ export class ArticleService {
     const savedArticle = await this.articleRepository.save(article);
 
     return ArticleMapper.toSummaryDto(savedArticle);
+  }
+
+  async getAll(): Promise<ArticleSummaryDto[]> {
+    const articles = await this.articleRepository.find({
+      relations: ['categories'],
+    });
+
+    return ArticleMapper.toSummaryDtoList(articles);
+  }
+
+  async getById(id: number): Promise<ArticleSummaryDto> {
+    const article = await this.articleRepository.findOne({
+      where: { id },
+      relations: ['categories'],
+    });
+
+    if (!article) {
+      throw new BadRequestException(`Article with ID ${id} not found.`);
+    }
+
+    return ArticleMapper.toSummaryDto(article);
+  }
+
+  async updateArticle(
+    id: number,
+    updateArticleDto: UpdateArticleDto,
+  ): Promise<ArticleSummaryDto> {
+    const existingArticle = await this.articleRepository.findOne({
+      where: { id },
+      relations: ['categories'],
+    });
+
+    if (!existingArticle) {
+      throw new BadRequestException(`Article with ID ${id} not found.`);
+    }
+
+    if (
+      await this.checkIfExistingArticleByTitleOrSlug(
+        updateArticleDto.title,
+        this.generateSlug(updateArticleDto.title),
+      )
+    ) {
+      throw new ConflictException(
+        `Article with title "${updateArticleDto.title}" already exists.`,
+      );
+    }
+
+    const categoryIds = [...new Set(updateArticleDto.categoryIds)];
+
+    const categories = await this.categoryRepository.find({
+      where: { id: In(categoryIds) },
+    });
+
+    if (categories.length !== categoryIds.length) {
+      throw new BadRequestException('One or more categories do not exist.');
+    }
+
+    existingArticle.title = updateArticleDto.title.trim();
+    existingArticle.slug = this.generateSlug(updateArticleDto.title);
+    // existingArticle.content = updateArticleDto.content.trim();
+    existingArticle.is_published =
+      updateArticleDto.is_published ?? existingArticle.is_published;
+    existingArticle.categories = categories;
+
+    const updatedArticle = await this.articleRepository.save(existingArticle);
+
+    return ArticleMapper.toSummaryDto(updatedArticle);
+  }
+
+  async deleteArticle(id: number) {
+    const existingArticle = await this.articleRepository.findOne({
+      where: { id },
+    });
+
+    if (!existingArticle) {
+      throw new BadRequestException(`Article with ID ${id} not found.`);
+    }
+
+    await this.articleRepository.remove(existingArticle);
+  }
+
+  private async checkIfExistingArticleByTitleOrSlug(
+    title: string,
+    slug: string,
+  ): Promise<boolean> {
+    if (await this.articleRepository.countBy({ title, slug })) return true;
+    return false;
   }
 
   private generateSlug(value: string): string {
