@@ -1,16 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CategoryService } from './category.service';
+import { ArticleService } from './article.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Category } from './entities/category';
+import { Article } from './entities/article';
+import { Category } from '../category/entities/category';
 
-describe('CategoryService', () => {
-  let service: CategoryService;
+describe('ArticleService', () => {
+  let service: ArticleService;
+  const articleRepositoryMock = {};
   const categoryRepositoryMock = {};
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        CategoryService,
+        ArticleService,
+        {
+          provide: getRepositoryToken(Article),
+          useValue: articleRepositoryMock,
+        },
         {
           provide: getRepositoryToken(Category),
           useValue: categoryRepositoryMock,
@@ -18,7 +24,7 @@ describe('CategoryService', () => {
       ],
     }).compile();
 
-    service = module.get<CategoryService>(CategoryService);
+    service = module.get<ArticleService>(ArticleService);
   });
 
   it('should be defined', () => {

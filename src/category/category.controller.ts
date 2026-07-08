@@ -10,7 +10,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
-import { CreateCategoryDto } from './entities/create-category.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
 import { CategoryDto } from './dto/category.dto';
 
 @Controller('category')

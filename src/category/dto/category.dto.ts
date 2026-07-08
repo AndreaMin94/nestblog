@@ -1,4 +1,6 @@
+import { Type } from 'class-transformer';
 import { IsInt, IsNotEmpty, IsString } from 'class-validator';
+import { ArticleSummaryDto } from '../../article/dto/article-summary.dto';
 
 export class CategoryDto {
   @IsInt()
@@ -11,4 +13,7 @@ export class CategoryDto {
   @IsNotEmpty()
   @IsString()
   slug!: string;
+
+  @Type(() => ArticleSummaryDto)
+  articles!: ArticleSummaryDto[];
 }
