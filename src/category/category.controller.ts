@@ -11,26 +11,26 @@ import {
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './entities/create-category.dto';
-import { Category } from './entities/category.dto';
+import { CategoryDto } from './dto/category.dto';
 
 @Controller('category')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Get()
-  async getAll(): Promise<Category[]> {
+  async getAll(): Promise<CategoryDto[]> {
     return await this.categoryService.getAll();
   }
 
   @Post()
   @HttpCode(201)
-  async create(@Body() dto: CreateCategoryDto): Promise<Category> {
+  async create(@Body() dto: CreateCategoryDto): Promise<CategoryDto> {
     return await this.categoryService.create(dto);
   }
 
   @Get(':id')
   @HttpCode(200)
-  async getById(@Param('id', ParseIntPipe) id: number): Promise<Category> {
+  async getById(@Param('id', ParseIntPipe) id: number): Promise<CategoryDto> {
     return await this.categoryService.getById(id);
   }
 
@@ -39,7 +39,7 @@ export class CategoryController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateCategoryDto,
-  ): Promise<Category> {
+  ): Promise<CategoryDto> {
     return await this.categoryService.update(id, dto);
   }
 

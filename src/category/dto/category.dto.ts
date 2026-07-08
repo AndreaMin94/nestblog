@@ -7,4 +7,8 @@ export class CategoryDto {
   @IsNotEmpty()
   @IsString()
   name!: string;
+
+  @IsNotEmpty()
+  @IsString()
+  slug!: string;
 }

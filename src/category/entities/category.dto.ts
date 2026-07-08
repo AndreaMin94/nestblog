@@ -1,22 +1,5 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-
-@Entity()
-export class Category {
-  @PrimaryGeneratedColumn()
+export class CategoryDto {
   id!: number;
-
-  @Column()
   name!: string;
-
-  @CreateDateColumn()
-  created_date!: Date;
-
-  @UpdateDateColumn()
-  updated_date!: Date;
+  slug!: string;
 }
