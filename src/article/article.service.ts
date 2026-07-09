@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -72,6 +73,7 @@ export class ArticleService {
 
   async getAll(): Promise<ArticleSummaryDto[]> {
     const articles = await this.articleRepository.find({
+      where: { is_published: true },
       relations: ['categories', 'author'],
     });
 
@@ -80,7 +82,7 @@ export class ArticleService {
 
   async getById(id: number): Promise<ArticleSummaryDto> {
     const article = await this.articleRepository.findOne({
-      where: { id },
+      where: { id, is_published: true },
       relations: ['categories', 'author'],
     });
 
@@ -94,14 +96,19 @@ export class ArticleService {
   async updateArticle(
     id: number,
     updateArticleDto: UpdateArticleDto,
+    authorId: number,
   ): Promise<ArticleSummaryDto> {
     const existingArticle = await this.articleRepository.findOne({
       where: { id },
-      relations: ['categories'],
+      relations: ['categories', 'author'],
     });
 
     if (!existingArticle) {
       throw new BadRequestException(`Article with ID ${id} not found.`);
+    }
+
+    if (existingArticle.author.id !== authorId) {
+      throw new ForbiddenException('You cannot modify this article');
     }
 
     if (
@@ -137,16 +144,30 @@ export class ArticleService {
     return ArticleMapper.toSummaryDto(updatedArticle);
   }
 
-  async deleteArticle(id: number) {
+  async deleteArticle(id: number, authorId: number) {
     const existingArticle = await this.articleRepository.findOne({
       where: { id },
+      relations: ['author'],
     });
 
     if (!existingArticle) {
       throw new BadRequestException(`Article with ID ${id} not found.`);
     }
 
+    if (existingArticle.author.id !== authorId) {
+      throw new ForbiddenException('You cannot delete this article');
+    }
+
     await this.articleRepository.remove(existingArticle);
+  }
+
+  async getCurrentUserArticles(authorId: number): Promise<ArticleSummaryDto[]> {
+    const articles = await this.articleRepository.find({
+      where: { author: { id: authorId } },
+      relations: ['categories', 'author'],
+    });
+
+    return ArticleMapper.toSummaryDtoList(articles);
   }
 
   private async checkIfExistingArticleByTitleOrSlug(

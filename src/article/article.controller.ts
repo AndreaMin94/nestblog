@@ -32,6 +32,14 @@ export class ArticleController {
     return await this.articleService.create(dto, user.sub);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('my')
+  async getMyArticles(
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ArticleSummaryDto[]> {
+    return await this.articleService.getCurrentUserArticles(user.sub);
+  }
+
   @Get()
   async getAll(): Promise<ArticleSummaryDto[]> {
     return await this.articleService.getAll();
@@ -49,13 +57,17 @@ export class ArticleController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateArticleDto,
+    @CurrentUser() user: JwtPayload,
   ): Promise<ArticleSummaryDto> {
-    return await this.articleService.updateArticle(id, dto);
+    return await this.articleService.updateArticle(id, dto, user.sub);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    await this.articleService.deleteArticle(id);
+  async delete(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<void> {
+    await this.articleService.deleteArticle(id, user.sub);
   }
 }
