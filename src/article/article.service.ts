@@ -86,8 +86,6 @@ export class ArticleService {
     query: ArticleListQueryDto,
   ): Promise<PaginatedResponseDto<ArticleSummaryDto>> {
     const pagination = getPaginationOptions(query);
-    const search = query.search?.trim().toLowerCase();
-    const categorySlug = query.category?.trim().toLowerCase();
 
     const queryBuilder = this.articleRepository
       .createQueryBuilder('article')
@@ -98,22 +96,7 @@ export class ArticleService {
       .take(pagination.take);
 
     this.applyArticleSorting(queryBuilder, query.sort);
-
-    if (search) {
-      queryBuilder.andWhere(
-        '(LOWER(article.title) LIKE :search OR LOWER(article.content) LIKE :search)',
-        { search: `%${search}%` },
-      );
-    }
-
-    if (categorySlug) {
-      queryBuilder.innerJoin(
-        'article.categories',
-        'filterCategory',
-        'filterCategory.slug = :categorySlug',
-        { categorySlug },
-      );
-    }
+    this.applyArticleListFilters(queryBuilder, query);
 
     const [articles, total] = await queryBuilder.getManyAndCount();
 
@@ -141,23 +124,9 @@ export class ArticleService {
     id: number,
     authorId: number,
   ): Promise<ArticleSummaryDto> {
-    const existingArticle = await this.articleRepository.findOne({
-      where: { id },
-      relations: ['categories', 'author'],
-    });
-
-    if (!existingArticle) {
-      throw new BadRequestException(`Article with ID ${id} not found.`);
-    }
-
-    if (existingArticle.author.id !== authorId) {
-      throw new ForbiddenException('You cannot modify this article');
-    }
-
+    const existingArticle = await this.findOwnedArticleOrThrow(id, authorId);
     existingArticle.is_published = !existingArticle.is_published;
-
     const updatedArticle = await this.articleRepository.save(existingArticle);
-
     return ArticleMapper.toSummaryDto(updatedArticle);
   }
 
@@ -166,18 +135,7 @@ export class ArticleService {
     updateArticleDto: UpdateArticleDto,
     authorId: number,
   ): Promise<ArticleSummaryDto> {
-    const existingArticle = await this.articleRepository.findOne({
-      where: { id },
-      relations: ['categories', 'author'],
-    });
-
-    if (!existingArticle) {
-      throw new BadRequestException(`Article with ID ${id} not found.`);
-    }
-
-    if (existingArticle.author.id !== authorId) {
-      throw new ForbiddenException('You cannot modify this article');
-    }
+    const existingArticle = await this.findOwnedArticleOrThrow(id, authorId);
 
     if (
       await this.checkIfExistingArticleByTitleOrSlug(
@@ -213,19 +171,7 @@ export class ArticleService {
   }
 
   async deleteArticle(id: number, authorId: number) {
-    const existingArticle = await this.articleRepository.findOne({
-      where: { id },
-      relations: ['author'],
-    });
-
-    if (!existingArticle) {
-      throw new BadRequestException(`Article with ID ${id} not found.`);
-    }
-
-    if (existingArticle.author.id !== authorId) {
-      throw new ForbiddenException('You cannot delete this article');
-    }
-
+    const existingArticle = await this.findOwnedArticleOrThrow(id, authorId);
     await this.articleRepository.remove(existingArticle);
   }
 
@@ -250,8 +196,6 @@ export class ArticleService {
     query: MyArticleListQueryDto,
   ): Promise<PaginatedResponseDto<ArticleSummaryDto>> {
     const pagination = getPaginationOptions(query);
-    const search = query.search?.trim().toLowerCase();
-    const categorySlug = query.category?.trim().toLowerCase();
 
     const queryBuilder = this.articleRepository
       .createQueryBuilder('article')
@@ -262,6 +206,30 @@ export class ArticleService {
       .take(pagination.take);
 
     this.applyArticleSorting(queryBuilder, query.sort);
+
+    this.applyArticleListFilters(queryBuilder, query);
+
+    if (query.is_published !== undefined) {
+      queryBuilder.andWhere('article.is_published = :isPublished', {
+        isPublished: query.is_published,
+      });
+    }
+
+    const [articles, total] = await queryBuilder.getManyAndCount();
+
+    return buildPaginatedResponse(
+      ArticleMapper.toSummaryDtoList(articles),
+      total,
+      pagination,
+    );
+  }
+
+  private applyArticleListFilters(
+    queryBuilder: SelectQueryBuilder<Article>,
+    query: ArticleListQueryDto,
+  ): void {
+    const search = query.search?.trim().toLowerCase();
+    const categorySlug = query.category?.trim().toLowerCase();
 
     if (search) {
       queryBuilder.andWhere(
@@ -278,20 +246,6 @@ export class ArticleService {
         { categorySlug },
       );
     }
-
-    if (query.is_published !== undefined) {
-      queryBuilder.andWhere('article.is_published = :isPublished', {
-        isPublished: query.is_published,
-      });
-    }
-
-    const [articles, total] = await queryBuilder.getManyAndCount();
-
-    return buildPaginatedResponse(
-      ArticleMapper.toSummaryDtoList(articles),
-      total,
-      pagination,
-    );
   }
 
   private applyArticleSorting(
@@ -324,5 +278,26 @@ export class ArticleService {
       .trim()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+  }
+
+  private async findOwnedArticleOrThrow(
+    id: number,
+    authorId: number,
+    relations: string[] = ['categories', 'author'],
+  ): Promise<Article> {
+    const article = await this.articleRepository.findOne({
+      where: { id },
+      relations,
+    });
+
+    if (!article) {
+      throw new BadRequestException(`Article with ID ${id} not found.`);
+    }
+
+    if (article.author.id !== authorId) {
+      throw new ForbiddenException('You cannot modify this article');
+    }
+
+    return article;
   }
 }
