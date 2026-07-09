@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CategoryController } from './category.controller';
 import { CategoryService } from './category.service';
+import { JwtService } from '@nestjs/jwt';
 
 describe('CategoryController', () => {
   let controller: CategoryController;
@@ -11,6 +12,10 @@ describe('CategoryController', () => {
       providers: [
         {
           provide: CategoryService,
+          useValue: {},
+        },
+        {
+          provide: JwtService,
           useValue: {},
         },
       ],

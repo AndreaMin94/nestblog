@@ -13,6 +13,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
@@ -62,11 +64,11 @@ export class AuthService {
 
     const payload = { sub: user.id, email: user.email };
     const accessToken = await this.jwtService.signAsync(payload);
-
+    const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN', '1h');
     return {
       accessToken,
       tokenType: 'Bearer',
-      expiresIn: '1h',
+      expiresIn: expiresIn,
       user: UserMapper.toDto(user),
     };
   }
