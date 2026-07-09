@@ -14,6 +14,7 @@ import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { CategoryDto } from './dto/category.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ArticleSummaryDto } from 'src/article/dto/article-summary.dto';
 
 @Controller('category')
 export class CategoryController {
@@ -52,5 +53,12 @@ export class CategoryController {
   @HttpCode(204)
   async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return await this.categoryService.delete(id);
+  }
+
+  @Get('slug/:slug/articles')
+  async getPublishedArticlesBySlug(
+    @Param('slug') slug: string,
+  ): Promise<ArticleSummaryDto[]> {
+    return await this.categoryService.getPublishedArticlesBySlug(slug);
   }
 }

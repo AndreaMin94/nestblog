@@ -18,6 +18,7 @@ import { UpdateArticleDto } from './dto/update-article.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload.type';
+import { ArticleDetailDto } from './dto/article-detail.dto';
 
 @Controller('article')
 export class ArticleController {
@@ -44,6 +45,11 @@ export class ArticleController {
   @Get()
   async getAll(): Promise<ArticleSummaryDto[]> {
     return await this.articleService.getAll();
+  }
+
+  @Get('slug/:slug')
+  async getBySlug(@Param('slug') slug: string): Promise<ArticleDetailDto> {
+    return this.articleService.getBySlug(slug);
   }
 
   @Get(':id')

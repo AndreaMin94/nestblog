@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Article } from './entities/article';
@@ -13,6 +14,7 @@ import { ArticleSummaryDto } from './dto/article-summary.dto';
 import { ArticleMapper } from './mappers/article.mapper';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { User } from '../auth/entities/user';
+import { ArticleDetailDto } from './dto/article-detail.dto';
 
 @Injectable()
 export class ArticleService {
@@ -183,6 +185,22 @@ export class ArticleService {
     }
 
     await this.articleRepository.remove(existingArticle);
+  }
+
+  async getBySlug(slug: string): Promise<ArticleDetailDto> {
+    const article = await this.articleRepository.findOne({
+      where: {
+        slug,
+        is_published: true,
+      },
+      relations: ['categories', 'author'],
+    });
+
+    if (!article) {
+      throw new NotFoundException(`Article with slug "${slug}" not found.`);
+    }
+
+    return ArticleMapper.toDetailDto(article);
   }
 
   async getCurrentUserArticles(authorId: number): Promise<ArticleSummaryDto[]> {

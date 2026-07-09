@@ -9,6 +9,8 @@ import { Repository } from 'typeorm';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { CategoryDto } from './dto/category.dto';
 import { CategoryMapper } from './mappers/category.mapper';
+import { ArticleSummaryDto } from 'src/article/dto/article-summary.dto';
+import { ArticleMapper } from 'src/article/mappers/article.mapper';
 
 @Injectable()
 export class CategoryService {
@@ -82,6 +84,25 @@ export class CategoryService {
     const category = await this.getCategoryEntityById(id);
 
     await this.categoryRepository.remove(category);
+  }
+
+  async getPublishedArticlesBySlug(slug: string): Promise<ArticleSummaryDto[]> {
+    const normalizedSlug = slug.trim().toLowerCase();
+
+    const category = await this.categoryRepository.findOne({
+      where: { slug: normalizedSlug },
+      relations: ['articles', 'articles.categories', 'articles.author'],
+    });
+
+    if (!category) {
+      throw new NotFoundException(`Category with slug "${slug}" not found.`);
+    }
+
+    const publishedArticles = category.articles.filter(
+      (article) => article.is_published,
+    );
+
+    return ArticleMapper.toSummaryDtoList(publishedArticles);
   }
 
   private generateSlug(value: string): string {
