@@ -1,4 +1,4 @@
-import { CategoryArticleSummaryDto } from 'src/category/dto/category-article-summary.dto';
+import { CategoryArticleSummaryDto } from '../../category/dto/category-article-summary.dto';
 import { AuthorSummaryDto } from './author-summary.dto';
 
 export class ArticleDetailDto {

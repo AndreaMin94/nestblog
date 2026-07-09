@@ -15,6 +15,12 @@ import { ArticleMapper } from './mappers/article.mapper';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { User } from '../auth/entities/user';
 import { ArticleDetailDto } from './dto/article-detail.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import {
+  buildPaginatedResponse,
+  getPaginationOptions,
+} from '../common/utils/pagination.util';
 
 @Injectable()
 export class ArticleService {
@@ -73,13 +79,24 @@ export class ArticleService {
     return ArticleMapper.toSummaryDto(savedArticle);
   }
 
-  async getAll(): Promise<ArticleSummaryDto[]> {
-    const articles = await this.articleRepository.find({
+  async getAll(
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<ArticleSummaryDto>> {
+    const pagination = getPaginationOptions(query);
+
+    const [articles, total] = await this.articleRepository.findAndCount({
       where: { is_published: true },
       relations: ['categories', 'author'],
+      order: { created_date: 'DESC' },
+      skip: pagination.skip,
+      take: pagination.take,
     });
 
-    return ArticleMapper.toSummaryDtoList(articles);
+    return buildPaginatedResponse(
+      ArticleMapper.toSummaryDtoList(articles),
+      total,
+      pagination,
+    );
   }
 
   async getById(id: number): Promise<ArticleSummaryDto> {
@@ -203,13 +220,25 @@ export class ArticleService {
     return ArticleMapper.toDetailDto(article);
   }
 
-  async getCurrentUserArticles(authorId: number): Promise<ArticleSummaryDto[]> {
-    const articles = await this.articleRepository.find({
+  async getCurrentUserArticles(
+    authorId: number,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<ArticleSummaryDto>> {
+    const pagination = getPaginationOptions(query);
+
+    const [articles, total] = await this.articleRepository.findAndCount({
       where: { author: { id: authorId } },
       relations: ['categories', 'author'],
+      order: { created_date: 'DESC' },
+      skip: pagination.skip,
+      take: pagination.take,
     });
 
-    return ArticleMapper.toSummaryDtoList(articles);
+    return buildPaginatedResponse(
+      ArticleMapper.toSummaryDtoList(articles),
+      total,
+      pagination,
+    );
   }
 
   private async checkIfExistingArticleByTitleOrSlug(

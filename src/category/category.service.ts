@@ -9,14 +9,23 @@ import { Repository } from 'typeorm';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { CategoryDto } from './dto/category.dto';
 import { CategoryMapper } from './mappers/category.mapper';
-import { ArticleSummaryDto } from 'src/article/dto/article-summary.dto';
-import { ArticleMapper } from 'src/article/mappers/article.mapper';
+import { ArticleSummaryDto } from '../article/dto/article-summary.dto';
+import { ArticleMapper } from '../article/mappers/article.mapper';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import {
+  buildPaginatedResponse,
+  getPaginationOptions,
+} from '../common/utils/pagination.util';
+import { Article } from '../article/entities/article';
 
 @Injectable()
 export class CategoryService {
   constructor(
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(Article)
+    private readonly articleRepository: Repository<Article>,
   ) {}
 
   async create(dto: CreateCategoryDto): Promise<CategoryDto> {
@@ -86,23 +95,37 @@ export class CategoryService {
     await this.categoryRepository.remove(category);
   }
 
-  async getPublishedArticlesBySlug(slug: string): Promise<ArticleSummaryDto[]> {
+  async getPublishedArticlesBySlug(
+    slug: string,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<ArticleSummaryDto>> {
     const normalizedSlug = slug.trim().toLowerCase();
+    const pagination = getPaginationOptions(query);
 
     const category = await this.categoryRepository.findOne({
       where: { slug: normalizedSlug },
-      relations: ['articles', 'articles.categories', 'articles.author'],
     });
 
     if (!category) {
       throw new NotFoundException(`Category with slug "${slug}" not found.`);
     }
 
-    const publishedArticles = category.articles.filter(
-      (article) => article.is_published,
-    );
+    const [articles, total] = await this.articleRepository.findAndCount({
+      where: {
+        is_published: true,
+        categories: { id: category.id },
+      },
+      relations: ['categories', 'author'],
+      order: { created_date: 'DESC' },
+      skip: pagination.skip,
+      take: pagination.take,
+    });
 
-    return ArticleMapper.toSummaryDtoList(publishedArticles);
+    return buildPaginatedResponse(
+      ArticleMapper.toSummaryDtoList(articles),
+      total,
+      pagination,
+    );
   }
 
   private generateSlug(value: string): string {
