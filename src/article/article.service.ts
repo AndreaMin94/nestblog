@@ -8,6 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Article } from './entities/article';
 import { In, Repository } from 'typeorm';
+import type { SelectQueryBuilder } from 'typeorm';
 import { Category } from '../category/entities/category';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { ArticleSummaryDto } from './dto/article-summary.dto';
@@ -15,12 +16,14 @@ import { ArticleMapper } from './mappers/article.mapper';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { User } from '../auth/entities/user';
 import { ArticleDetailDto } from './dto/article-detail.dto';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import {
   buildPaginatedResponse,
   getPaginationOptions,
 } from '../common/utils/pagination.util';
+import { ArticleListQueryDto } from './dto/article-list-query.dto';
+import { MyArticleListQueryDto } from './dto/my-article-list-query.dto';
+import { ArticleSort } from './enums/article-sort.enum';
 
 @Injectable()
 export class ArticleService {
@@ -80,17 +83,39 @@ export class ArticleService {
   }
 
   async getAll(
-    query: PaginationQueryDto,
+    query: ArticleListQueryDto,
   ): Promise<PaginatedResponseDto<ArticleSummaryDto>> {
     const pagination = getPaginationOptions(query);
+    const search = query.search?.trim().toLowerCase();
+    const categorySlug = query.category?.trim().toLowerCase();
 
-    const [articles, total] = await this.articleRepository.findAndCount({
-      where: { is_published: true },
-      relations: ['categories', 'author'],
-      order: { created_date: 'DESC' },
-      skip: pagination.skip,
-      take: pagination.take,
-    });
+    const queryBuilder = this.articleRepository
+      .createQueryBuilder('article')
+      .leftJoinAndSelect('article.categories', 'category')
+      .leftJoinAndSelect('article.author', 'author')
+      .where('article.is_published = :isPublished', { isPublished: true })
+      .skip(pagination.skip)
+      .take(pagination.take);
+
+    this.applyArticleSorting(queryBuilder, query.sort);
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(LOWER(article.title) LIKE :search OR LOWER(article.content) LIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    if (categorySlug) {
+      queryBuilder.innerJoin(
+        'article.categories',
+        'filterCategory',
+        'filterCategory.slug = :categorySlug',
+        { categorySlug },
+      );
+    }
+
+    const [articles, total] = await queryBuilder.getManyAndCount();
 
     return buildPaginatedResponse(
       ArticleMapper.toSummaryDtoList(articles),
@@ -222,23 +247,67 @@ export class ArticleService {
 
   async getCurrentUserArticles(
     authorId: number,
-    query: PaginationQueryDto,
+    query: MyArticleListQueryDto,
   ): Promise<PaginatedResponseDto<ArticleSummaryDto>> {
     const pagination = getPaginationOptions(query);
+    const search = query.search?.trim().toLowerCase();
+    const categorySlug = query.category?.trim().toLowerCase();
 
-    const [articles, total] = await this.articleRepository.findAndCount({
-      where: { author: { id: authorId } },
-      relations: ['categories', 'author'],
-      order: { created_date: 'DESC' },
-      skip: pagination.skip,
-      take: pagination.take,
-    });
+    const queryBuilder = this.articleRepository
+      .createQueryBuilder('article')
+      .leftJoinAndSelect('article.categories', 'categories')
+      .leftJoinAndSelect('article.author', 'author')
+      .where('author.id = :authorId', { authorId })
+      .skip(pagination.skip)
+      .take(pagination.take);
+
+    this.applyArticleSorting(queryBuilder, query.sort);
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(LOWER(article.title) LIKE :search OR LOWER(article.content) LIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    if (categorySlug) {
+      queryBuilder.innerJoin(
+        'article.categories',
+        'filterCategory',
+        'filterCategory.slug = :categorySlug',
+        { categorySlug },
+      );
+    }
+
+    if (query.is_published !== undefined) {
+      queryBuilder.andWhere('article.is_published = :isPublished', {
+        isPublished: query.is_published,
+      });
+    }
+
+    const [articles, total] = await queryBuilder.getManyAndCount();
 
     return buildPaginatedResponse(
       ArticleMapper.toSummaryDtoList(articles),
       total,
       pagination,
     );
+  }
+
+  private applyArticleSorting(
+    queryBuilder: SelectQueryBuilder<Article>,
+    sort: ArticleSort = ArticleSort.Latest,
+  ): void {
+    const sortMap = {
+      [ArticleSort.Latest]: ['article.created_date', 'DESC'],
+      [ArticleSort.Oldest]: ['article.created_date', 'ASC'],
+      [ArticleSort.TitleAsc]: ['article.title', 'ASC'],
+      [ArticleSort.TitleDesc]: ['article.title', 'DESC'],
+    } as const;
+
+    const [field, direction] = sortMap[sort];
+
+    queryBuilder.orderBy(field, direction);
   }
 
   private async checkIfExistingArticleByTitleOrSlug(

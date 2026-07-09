@@ -20,8 +20,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload.type';
 import { ArticleDetailDto } from './dto/article-detail.dto';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { ArticleListQueryDto } from './dto/article-list-query.dto';
+import { MyArticleListQueryDto } from './dto/my-article-list-query.dto';
 
 @Controller('article')
 export class ArticleController {
@@ -41,14 +43,14 @@ export class ArticleController {
   @Get('my')
   async getMyArticles(
     @CurrentUser() user: JwtPayload,
-    @Query() query: PaginationQueryDto,
+    @Query() query: MyArticleListQueryDto,
   ): Promise<PaginatedResponseDto<ArticleSummaryDto>> {
     return await this.articleService.getCurrentUserArticles(user.sub, query);
   }
 
   @Get()
   async getAll(
-    @Query() query: PaginationQueryDto,
+    @Query() query: ArticleListQueryDto,
   ): Promise<PaginatedResponseDto<ArticleSummaryDto>> {
     return await this.articleService.getAll(query);
   }
