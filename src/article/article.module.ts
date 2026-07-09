@@ -5,7 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Article } from './entities/article';
 import { Category } from '../category/entities/category';
 import { AuthModule } from '../auth/auth.module';
-import { User } from 'src/auth/entities/user';
+import { User } from '../auth/entities/user';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Article, Category, User]), AuthModule],

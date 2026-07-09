@@ -11,7 +11,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { User } from 'src/auth/entities/user';
+import { User } from '../../auth/entities/user';
 
 @Entity()
 export class Article {

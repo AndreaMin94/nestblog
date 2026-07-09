@@ -12,7 +12,7 @@ import { CreateArticleDto } from './dto/create-article.dto';
 import { ArticleSummaryDto } from './dto/article-summary.dto';
 import { ArticleMapper } from './mappers/article.mapper';
 import { UpdateArticleDto } from './dto/update-article.dto';
-import { User } from 'src/auth/entities/user';
+import { User } from '../auth/entities/user';
 
 @Injectable()
 export class ArticleService {
@@ -91,6 +91,30 @@ export class ArticleService {
     }
 
     return ArticleMapper.toSummaryDto(article);
+  }
+
+  async togglePublishStatus(
+    id: number,
+    authorId: number,
+  ): Promise<ArticleSummaryDto> {
+    const existingArticle = await this.articleRepository.findOne({
+      where: { id },
+      relations: ['categories', 'author'],
+    });
+
+    if (!existingArticle) {
+      throw new BadRequestException(`Article with ID ${id} not found.`);
+    }
+
+    if (existingArticle.author.id !== authorId) {
+      throw new ForbiddenException('You cannot modify this article');
+    }
+
+    existingArticle.is_published = !existingArticle.is_published;
+
+    const updatedArticle = await this.articleRepository.save(existingArticle);
+
+    return ArticleMapper.toSummaryDto(updatedArticle);
   }
 
   async updateArticle(

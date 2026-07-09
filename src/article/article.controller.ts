@@ -6,6 +6,7 @@ import {
   HttpCode,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Put,
   UseGuards,
@@ -15,8 +16,8 @@ import { CreateArticleDto } from './dto/create-article.dto';
 import { ArticleSummaryDto } from './dto/article-summary.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
-import type { JwtPayload } from 'src/auth/types/jwt-payload.type';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { JwtPayload } from '../auth/types/jwt-payload.type';
 
 @Controller('article')
 export class ArticleController {
@@ -50,6 +51,15 @@ export class ArticleController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ArticleSummaryDto> {
     return await this.articleService.getById(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/toggle-publish')
+  async togglePublishStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ArticleSummaryDto> {
+    return await this.articleService.togglePublishStatus(id, user.sub);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -3,11 +3,13 @@ import { ArticleService } from './article.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Article } from './entities/article';
 import { Category } from '../category/entities/category';
+import { User } from '../auth/entities/user';
 
 describe('ArticleService', () => {
   let service: ArticleService;
   const articleRepositoryMock = {};
   const categoryRepositoryMock = {};
+  const userRepositoryMock = {};
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -20,6 +22,10 @@ describe('ArticleService', () => {
         {
           provide: getRepositoryToken(Category),
           useValue: categoryRepositoryMock,
+        },
+        {
+          provide: getRepositoryToken(User),
+          useValue: userRepositoryMock,
         },
       ],
     }).compile();

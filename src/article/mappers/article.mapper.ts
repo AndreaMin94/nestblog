@@ -9,6 +9,7 @@ export class ArticleMapper {
       id: article.id,
       title: article.title,
       slug: article.slug,
+      is_published: article.is_published,
       categories:
         article.categories?.map((category) =>
           ArticleMapper.categoryToCategoryArticleSummary(category),

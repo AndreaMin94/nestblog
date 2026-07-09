@@ -5,6 +5,7 @@ export class ArticleSummaryDto {
   id!: number;
   title!: string;
   slug!: string;
+  is_published!: boolean;
   categories!: CategoryArticleSummaryDto[];
   author!: AuthorSummaryDto;
 }
