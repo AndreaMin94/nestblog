@@ -4,9 +4,10 @@ import { ArticleController } from './article.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Article } from './entities/article';
 import { Category } from '../category/entities/category';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Article, Category])],
+  imports: [TypeOrmModule.forFeature([Article, Category]), AuthModule],
   controllers: [ArticleController],
   providers: [ArticleService],
 })

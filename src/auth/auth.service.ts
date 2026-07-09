@@ -1,18 +1,21 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { User } from './entities/user';
-import { Repository } from 'typeorm';
-import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
-import { LoginDto } from './dto/login.dto';
+import { Repository } from 'typeorm';
+import { User } from './entities/user';
+import { JwtService } from '@nestjs/jwt';
 import { UserDto } from './dto/user.dto';
+import { LoginDto } from './dto/login.dto';
+import { Injectable } from '@nestjs/common';
+import { RegisterDto } from './dto/register.dto';
 import { UserMapper } from './mappers/user.mapper';
+import { InjectRepository } from '@nestjs/typeorm';
+import { AuthResponseDto } from './dto/auth-response.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly jwtService: JwtService,
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
@@ -37,7 +40,7 @@ export class AuthService {
     return UserMapper.toDto(user);
   }
 
-  async login(loginDto: LoginDto): Promise<UserDto | null> {
+  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     const user = await this.findByEmail(loginDto.email);
 
     if (!user) {
@@ -53,6 +56,14 @@ export class AuthService {
       throw new Error('Invalid email or password');
     }
 
-    return UserMapper.toDto(user);
+    const payload = { sub: user.id, email: user.email };
+    const accessToken = await this.jwtService.signAsync(payload);
+
+    return {
+      accessToken,
+      tokenType: 'Bearer',
+      expiresIn: '1h',
+      user: UserMapper.toDto(user),
+    };
   }
 }

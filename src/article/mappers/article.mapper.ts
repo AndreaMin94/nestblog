@@ -1,7 +1,7 @@
-import { Category } from 'src/category/entities/category';
+import { Category } from '../../category/entities/category';
 import { ArticleSummaryDto } from '../dto/article-summary.dto';
 import { Article } from '../entities/article';
-import { CategoryArticleSummaryDto } from 'src/category/dto/category-article-summary.dto';
+import { CategoryArticleSummaryDto } from '../../category/dto/category-article-summary.dto';
 
 export class ArticleMapper {
   static toSummaryDto(article: Article): ArticleSummaryDto {

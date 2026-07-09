@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ArticleController } from './article.controller';
 import { ArticleService } from './article.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtService } from '@nestjs/jwt';
 
 describe('ArticleController', () => {
   let controller: ArticleController;
@@ -11,6 +13,16 @@ describe('ArticleController', () => {
       providers: [
         {
           provide: ArticleService,
+          useValue: {},
+        },
+        {
+          provide: JwtAuthGuard,
+          useValue: {
+            canActivate: jest.fn(() => true),
+          },
+        },
+        {
+          provide: JwtService,
           useValue: {},
         },
       ],

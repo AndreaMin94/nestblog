@@ -3,7 +3,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterResponse } from './http/register.response';
-import { LoginResponse } from './http/login.response';
+import { AuthResponseDto } from './dto/auth-response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -16,8 +16,8 @@ export class AuthController {
   }
 
   @Post('login')
-  async login(@Body() loginDto: LoginDto): Promise<LoginResponse> {
-    const user = await this.authService.login(loginDto);
-    return { message: 'User logged in successfully', user };
+  async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
+    const response = await this.authService.login(loginDto);
+    return response;
   }
 }
