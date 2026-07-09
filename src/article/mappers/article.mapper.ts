@@ -13,6 +13,10 @@ export class ArticleMapper {
         article.categories?.map((category) =>
           ArticleMapper.categoryToCategoryArticleSummary(category),
         ) || [],
+      author: {
+        id: article.author.id,
+        email: article.author.email,
+      },
     };
   }
 

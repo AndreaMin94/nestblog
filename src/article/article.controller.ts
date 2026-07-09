@@ -15,6 +15,8 @@ import { CreateArticleDto } from './dto/create-article.dto';
 import { ArticleSummaryDto } from './dto/article-summary.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import type { JwtPayload } from 'src/auth/types/jwt-payload.type';
 
 @Controller('article')
 export class ArticleController {
@@ -23,8 +25,11 @@ export class ArticleController {
   @UseGuards(JwtAuthGuard)
   @Post()
   @HttpCode(201)
-  async create(@Body() dto: CreateArticleDto): Promise<ArticleSummaryDto> {
-    return await this.articleService.create(dto);
+  async create(
+    @Body() dto: CreateArticleDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ArticleSummaryDto> {
+    return await this.articleService.create(dto, user.sub);
   }
 
   @Get()

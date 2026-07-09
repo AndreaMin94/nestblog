@@ -11,6 +11,7 @@ import { CreateArticleDto } from './dto/create-article.dto';
 import { ArticleSummaryDto } from './dto/article-summary.dto';
 import { ArticleMapper } from './mappers/article.mapper';
 import { UpdateArticleDto } from './dto/update-article.dto';
+import { User } from 'src/auth/entities/user';
 
 @Injectable()
 export class ArticleService {
@@ -19,9 +20,14 @@ export class ArticleService {
     private readonly articleRepository: Repository<Article>,
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
-  async create(dto: CreateArticleDto): Promise<ArticleSummaryDto> {
+  async create(
+    dto: CreateArticleDto,
+    authorId: number,
+  ): Promise<ArticleSummaryDto> {
     const title = dto.title.trim();
     const slug = this.generateSlug(title);
     const categoryIds = [...new Set(dto.categoryIds)];
@@ -44,12 +50,19 @@ export class ArticleService {
       throw new BadRequestException('One or more categories do not exist.');
     }
 
+    const author = await this.userRepository.findOne({
+      where: { id: authorId },
+    });
+    if (!author) {
+      throw new BadRequestException(`Author with ID ${authorId} not found.`);
+    }
     const article = this.articleRepository.create({
       title,
       slug,
       content: dto.content.trim(),
       categories,
       is_published: dto.is_published ?? false,
+      author: author,
     });
 
     const savedArticle = await this.articleRepository.save(article);
@@ -59,7 +72,7 @@ export class ArticleService {
 
   async getAll(): Promise<ArticleSummaryDto[]> {
     const articles = await this.articleRepository.find({
-      relations: ['categories'],
+      relations: ['categories', 'author'],
     });
 
     return ArticleMapper.toSummaryDtoList(articles);
@@ -68,7 +81,7 @@ export class ArticleService {
   async getById(id: number): Promise<ArticleSummaryDto> {
     const article = await this.articleRepository.findOne({
       where: { id },
-      relations: ['categories'],
+      relations: ['categories', 'author'],
     });
 
     if (!article) {

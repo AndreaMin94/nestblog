@@ -8,7 +8,10 @@ import {
   UpdateDateColumn,
   ManyToMany,
   JoinTable,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { User } from 'src/auth/entities/user';
 
 @Entity()
 export class Article {
@@ -48,4 +51,8 @@ export class Article {
 
   @UpdateDateColumn()
   updated_date!: Date;
+
+  @ManyToOne(() => User, (user) => user.articles, { nullable: false })
+  @JoinColumn({ name: 'user_id' })
+  author!: User;
 }
