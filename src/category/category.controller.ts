@@ -8,10 +8,12 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { CategoryDto } from './dto/category.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('category')
 export class CategoryController {
@@ -22,6 +24,7 @@ export class CategoryController {
     return await this.categoryService.getAll();
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post()
   @HttpCode(201)
   async create(@Body() dto: CreateCategoryDto): Promise<CategoryDto> {
@@ -34,6 +37,7 @@ export class CategoryController {
     return await this.categoryService.getById(id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   @HttpCode(200)
   async update(
@@ -43,6 +47,7 @@ export class CategoryController {
     return await this.categoryService.update(id, dto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   @HttpCode(204)
   async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {

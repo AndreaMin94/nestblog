@@ -4,11 +4,15 @@ import { User } from './entities/user';
 import { JwtService } from '@nestjs/jwt';
 import { UserDto } from './dto/user.dto';
 import { LoginDto } from './dto/login.dto';
-import { Injectable } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
 import { UserMapper } from './mappers/user.mapper';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
@@ -26,7 +30,7 @@ export class AuthService {
     const existingUser = await this.findByEmail(registerDto.email);
 
     if (existingUser) {
-      throw new Error('User with this email already exists');
+      throw new ConflictException('User with this email already exists');
     }
     const passwordHash = await bcrypt.hash(registerDto.password, 12);
 
@@ -44,7 +48,7 @@ export class AuthService {
     const user = await this.findByEmail(loginDto.email);
 
     if (!user) {
-      throw new Error('Invalid email or password');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     const isPasswordValid = await bcrypt.compare(
